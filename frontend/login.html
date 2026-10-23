@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>登录 · 飞税税务管理系统</title>
+<link rel="icon" href="favicon.svg">
+<link rel="stylesheet" href="style.css">
+<script>var PREFIX = (function () {
+    var p = location.pathname.replace(/\/[^/]*$/, '');
+    return (p === '/' || p === '') ? '' : p;
+  })();</script>
+</head>
+<body>
+<div class="login-wrap">
+  <div class="login-box">
+    <h1>飞税税务管理系统</h1>
+    <p>全税种申报 · 发票管理 · 税负分析与风险预警</p>
+    <input id="u" placeholder="用户名" autocomplete="username" value="admin">
+    <input id="p" type="password" placeholder="密码" autocomplete="current-password" value="tax@2026">
+    <button class="btn" id="go">登 录</button>
+    <div class="hint">
+      演示账号：admin / tax@2026（管理员）<br>
+      liyan / 123456（税务主管）· hejun / 123456（内审）
+    </div>
+  </div>
+</div>
+<div id="toast" class="toast hidden"></div>
+<div id="modal-mask" class="modal-mask hidden"><div class="modal" id="modal"></div></div>
+<script src="app.js"></script>
+<script>
+(function () {
+  function toast(m, err) {
+    var t = document.getElementById('toast');
+    t.textContent = m;
+    t.style.background = err ? '#d03050' : '#1f2733';
+    t.classList.remove('hidden');
+    clearTimeout(t._tm);
+    t._tm = setTimeout(function () { t.classList.add('hidden'); }, 2600);
+  }
+  function login() {
+    var u = document.getElementById('u').value.trim();
+    var p = document.getElementById('p').value;
+    if (!u || !p) { toast('请输入用户名和密码', true); return; }
+    var btn = document.getElementById('go');
+    btn.disabled = true; btn.textContent = '登录中…';
+    fetch(PREFIX + '/api/auth/login', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({username: u, password: p})
+    }).then(function (r) {
+      return r.json().then(function (j) { return {status: r.status, j: j}; });
+    }).then(function (res) {
+      if (res.status !== 200 || !res.j || res.j.code !== 200) {
+        throw new Error((res.j && res.j.message) || '登录失败');
+      }
+      var d = res.j.data;
+      localStorage.setItem('tax_token', d.token);
+      localStorage.setItem('tax_user', JSON.stringify(d.user || {}));
+      location.href = 'index.html';
+    }).catch(function (e) {
+      toast(e.message, true);
+      btn.disabled = false; btn.textContent = '登 录';
+    });
+  }
+  document.getElementById('go').onclick = login;
+  document.getElementById('p').onkeydown = function (e) { if (e.key === 'Enter') login(); };
+  document.getElementById('u').onkeydown = function (e) { if (e.key === 'Enter') login(); };
+})();
+</script>
+</body>
+</html>
